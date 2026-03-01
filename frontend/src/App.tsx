@@ -1,35 +1,57 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
+import HeadPage from "./pages/HeadPage";
+import ManagerPage from "./pages/ManagerPage";
+import CoordPage from "./pages/CoordPage";
+import NoRolePage from "./pages/NoRolePage";
+import ProtectedRoute, { getDefaultPathForRole } from "./components/ProtectedRoute";
+import TopBar from "./components/TopBar";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { user, loading, login } = useAuth();
+
+  if (loading) {
+    return <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>Loading...</div>;
+  }
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <TopBar />
+      <Routes>
+        {/* Public Login Route */}
+        <Route path="/" element={
+          user?.authenticated ? (
+            <Navigate to={getDefaultPathForRole(user.role)} replace />
+          ) : (
+            <div>
+              <h1>Login Page</h1>
+              <button onClick={login}>Login with DAuth</button>
+            </div>
+          )
+        } />
+
+        {/* Protected Routes */}
+        <Route element={<ProtectedRoute allowedRole="HEAD" />}>
+          <Route path="/head/*" element={<HeadPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRole="MANAGER" />}>
+          <Route path="/manager/*" element={<ManagerPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRole="COORD" />}>
+          <Route path="/coord/*" element={<CoordPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRole="NO-ROLE" />}>
+          <Route path="/no-role/*" element={<NoRolePage />} />
+        </Route>
+
+        {/* Catch-All */}
+        <Route path="*" element={<Navigate to={user?.authenticated ? getDefaultPathForRole(user.role) : "/"} replace />} />
+      </Routes>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
